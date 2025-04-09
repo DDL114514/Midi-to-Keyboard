@@ -3,96 +3,96 @@ import tkinter as tk
 from tkinter import ttk, filedialog, scrolledtext
 import threading
 import queue
-from midi_to_keyboard import midi_to_keyboard, CONTROL_KEYS, show_track_info  # Ìí¼Óshow_track_infoµ¼Èë
+from midi_to_keyboard import midi_to_keyboard, CONTROL_KEYS, show_track_info  # æ·»åŠ show_track_infoå¯¼å…¥
 
 class MidiPlayerApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("MIDIÓ³Éä¼üÅÌ½Å±¾ By DDL")
+        self.root.title("MIDIæ˜ å°„é”®ç›˜è„šæœ¬ By DDL")
         self.output_queue = queue.Queue()
         self.setup_ui()
         self.update_output()
         
     def setup_ui(self):
-        # ¿ì½İ¼üÌáÊ¾ÇøÓò
-        shortcut_frame = ttk.LabelFrame(self.root, text="¿ì½İ¼ü")
+        # å¿«æ·é”®æç¤ºåŒºåŸŸ
+        shortcut_frame = ttk.LabelFrame(self.root, text="å¿«æ·é”®")
         shortcut_frame.pack(padx=10, pady=5, fill=tk.X)
         
-        # ´ÓÅäÖÃÎÄ¼ş¼ÓÔØ°´¼üÏÔÊ¾Ó³Éä
+        # ä»é…ç½®æ–‡ä»¶åŠ è½½æŒ‰é”®æ˜¾ç¤ºæ˜ å°„
         from midi_to_keyboard import config
         key_display = config.get('key_display', {})
         
         shortcuts = [
-            f"¿ªÊ¼/ÔİÍ£: {CONTROL_KEYS['pause']}",
-            f"Í£Ö¹: {CONTROL_KEYS['stop']}",
-            f"ÖØĞÂ¿ªÊ¼: {CONTROL_KEYS['restart']}",
-            f"¼õËÙ: {key_display.get(CONTROL_KEYS['speed_down'], CONTROL_KEYS['speed_down'])}",
-            f"¼ÓËÙ: {key_display.get(CONTROL_KEYS['speed_up'], CONTROL_KEYS['speed_up'])}"
+            f"å¼€å§‹/æš‚åœ: {CONTROL_KEYS['pause']}",
+            f"åœæ­¢: {CONTROL_KEYS['stop']}",
+            f"é‡æ–°å¼€å§‹: {CONTROL_KEYS['restart']}",
+            f"å‡é€Ÿ: {key_display.get(CONTROL_KEYS['speed_down'], CONTROL_KEYS['speed_down'])}",
+            f"åŠ é€Ÿ: {key_display.get(CONTROL_KEYS['speed_up'], CONTROL_KEYS['speed_up'])}"
         ]
         ttk.Label(shortcut_frame, text=" | ".join(shortcuts)).pack()
 
-        # ÎÄ¼şÑ¡ÔñÇøÓò
-        file_frame = ttk.LabelFrame(self.root, text="MIDIÎÄ¼ş")
+        # æ–‡ä»¶é€‰æ‹©åŒºåŸŸ
+        file_frame = ttk.LabelFrame(self.root, text="MIDIæ–‡ä»¶")
         file_frame.pack(padx=10, pady=5, fill=tk.X)
         
         self.file_path = tk.StringVar()
         ttk.Entry(file_frame, textvariable=self.file_path).pack(side=tk.LEFT, expand=True, fill=tk.X, padx=5)
-        ttk.Button(file_frame, text="ä¯ÀÀ", command=self.browse_file).pack(side=tk.RIGHT, padx=5)
-        ttk.Button(file_frame, text="²éÑ¯midiĞÅÏ¢", command=self.query_midi_info).pack(side=tk.RIGHT, padx=5)
+        ttk.Button(file_frame, text="æµè§ˆ", command=self.browse_file).pack(side=tk.RIGHT, padx=5)
+        ttk.Button(file_frame, text="æŸ¥è¯¢midiä¿¡æ¯", command=self.query_midi_info).pack(side=tk.RIGHT, padx=5)
 
-        # ¹ìµÀÑ¡ÔñÇøÓò£¨ÒÆ¶¯µ½ËÙ¶ÈÇøÓòÉÏ·½£©
-        track_frame = ttk.LabelFrame(self.root, text="¹ìµÀÑ¡Ôñ")
+        # è½¨é“é€‰æ‹©åŒºåŸŸ
+        track_frame = ttk.LabelFrame(self.root, text="è½¨é“é€‰æ‹©")
         track_frame.pack(padx=10, pady=5, fill=tk.X)
         
-        self.track_var = tk.StringVar(value="È«²¿¹ìµÀ")
-        ttk.Label(track_frame, text="Ñ¡Ôñ¹ìµÀ:").pack(side=tk.LEFT, padx=5)
+        self.track_var = tk.StringVar(value="å…¨éƒ¨è½¨é“")
+        ttk.Label(track_frame, text="é€‰æ‹©è½¨é“:").pack(side=tk.LEFT, padx=5)
         self.track_combobox = ttk.Combobox(track_frame, textvariable=self.track_var, state="readonly")
         self.track_combobox.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=5)
 
-        # ËÙ¶ÈÏÔÊ¾ÇøÓò
-        speed_frame = ttk.LabelFrame(self.root, text="µ±Ç°ËÙ¶È")
+        # é€Ÿåº¦æ˜¾ç¤ºåŒºåŸŸ
+        speed_frame = ttk.LabelFrame(self.root, text="å½“å‰é€Ÿåº¦")
         speed_frame.pack(padx=10, pady=5, fill=tk.X)
         
         self.speed_label = ttk.Label(speed_frame, text="1.0x")
         self.speed_label.pack()
 
-        # Êä³öÏÔÊ¾ÇøÓò
-        output_frame = ttk.LabelFrame(self.root, text="²¥·ÅÊä³ö")
+        # è¾“å‡ºæ˜¾ç¤ºåŒºåŸŸ
+        output_frame = ttk.LabelFrame(self.root, text="æ’­æ”¾è¾“å‡º")
         output_frame.pack(padx=10, pady=5, fill=tk.BOTH, expand=True)
         
         self.output_text = scrolledtext.ScrolledText(output_frame, height=15, state=tk.DISABLED)
         self.output_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
-        # ¿ªÊ¼°´Å¥
+        # å¼€å§‹æŒ‰é’®
         start_frame = ttk.Frame(self.root)
         start_frame.pack(padx=10, pady=5, fill=tk.X)
         
-        self.start_btn = ttk.Button(start_frame, text="¿ªÊ¼³ÌĞò", command=self.start_playback)
+        self.start_btn = ttk.Button(start_frame, text="å¼€å§‹ç¨‹åº", command=self.start_playback)
         self.start_btn.pack(fill=tk.X)
         
-        # É¾³ıÎÄ¼şÄ©Î²ÖØ¸´µÄ¹ìµÀÑ¡ÔñÇøÓò¶¨Òå
+        # åˆ é™¤æ–‡ä»¶æœ«å°¾é‡å¤çš„è½¨é“é€‰æ‹©åŒºåŸŸå®šä¹‰
     def browse_file(self):
-        filepath = filedialog.askopenfilename(filetypes=[("MIDIÎÄ¼ş", "*.mid *.midi")])
+        filepath = filedialog.askopenfilename(filetypes=[("MIDIæ–‡ä»¶", "*.mid *.midi")])
         if filepath:
             self.file_path.set(filepath)
-            # ×Ô¶¯¸üĞÂ¹ìµÀÁĞ±í
+            # è‡ªåŠ¨æ›´æ–°è½¨é“åˆ—è¡¨
             self.update_track_list()
     def start_playback(self):
         filepath = self.file_path.get()
         if not filepath:
-            self.append_output("ÇëÏÈÑ¡ÔñMIDIÎÄ¼ş")
+            self.append_output("è¯·å…ˆé€‰æ‹©MIDIæ–‡ä»¶")
             return
             
-        # »ñÈ¡Ñ¡ÔñµÄ¹ìµÀ
+        # è·å–é€‰æ‹©çš„è½¨é“
         track_selection = self.track_var.get()
-        track_num = None if track_selection == "È«²¿¹ìµÀ" else int(track_selection.split()[-1])
+        track_num = None if track_selection == "å…¨éƒ¨è½¨é“" else int(track_selection.split()[-1])
             
         self.start_btn.config(state=tk.DISABLED)
         
-        # ÔÚĞÂÏß³ÌÖĞÔËĞĞMIDI²¥·Å
+        # åœ¨æ–°çº¿ç¨‹ä¸­è¿è¡ŒMIDIæ’­æ”¾
         threading.Thread(
             target=self.run_midi_playback,
-            args=(filepath, track_num),  # ´«Èë¹ìµÀ±àºÅ
+            args=(filepath, track_num),  # ä¼ å…¥è½¨é“ç¼–å·
             daemon=True
         ).start()
         
@@ -100,7 +100,7 @@ class MidiPlayerApp:
         try:
             midi_to_keyboard(filepath, track_num=track_num, output_queue=self.output_queue)
         except Exception as e:
-            self.output_queue.put(f"²¥·Å´íÎó: {str(e)}")
+            self.output_queue.put(f"æ’­æ”¾é”™è¯¯: {str(e)}")
         finally:
             self.root.after(0, lambda: self.start_btn.config(state=tk.NORMAL))
             
@@ -115,21 +115,21 @@ class MidiPlayerApp:
             text = self.output_queue.get_nowait()
             self.append_output(text)
             
-            # ¸üĞÂËÙ¶ÈÏÔÊ¾
-            if "ËÙ¶È" in text:
+            # æ›´æ–°é€Ÿåº¦æ˜¾ç¤º
+            if "é€Ÿåº¦" in text:
                 self.speed_label.config(text=text.split(":")[1].strip())
                 
         self.root.after(100, self.update_output)
 
     def query_midi_info(self):
-        """²éÑ¯MIDIÎÄ¼şĞÅÏ¢"""
+        """æŸ¥è¯¢MIDIæ–‡ä»¶ä¿¡æ¯"""
         filepath = self.file_path.get()
         if not filepath:
-            self.append_output("ÇëÏÈÑ¡ÔñMIDIÎÄ¼ş")
+            self.append_output("è¯·å…ˆé€‰æ‹©MIDIæ–‡ä»¶")
             return
             
         try:
-            # ÖØ¶¨Ïò±ê×¼Êä³öÒÔ²¶»ñĞÅÏ¢
+            # é‡å®šå‘æ ‡å‡†è¾“å‡ºä»¥æ•è·ä¿¡æ¯
             import sys
             from io import StringIO
             
@@ -142,36 +142,36 @@ class MidiPlayerApp:
             sys.stdout = old_stdout
             output = mystdout.getvalue()
             
-            # ÏÔÊ¾ÔÚGUIÖĞ
+            # æ˜¾ç¤ºåœ¨GUIä¸­
             self.append_output(output)
             
         except Exception as e:
-            self.append_output(f"²éÑ¯´íÎó: {str(e)}")
+            self.append_output(f"æŸ¥è¯¢é”™è¯¯: {str(e)}")
 
     def update_track_list(self):
         filepath = self.file_path.get()
         if not filepath:
-            self.append_output("ÇëÏÈÑ¡ÔñMIDIÎÄ¼ş")
+            self.append_output("è¯·å…ˆé€‰æ‹©MIDIæ–‡ä»¶")
             return
             
         try:
-            # ÖØ¶¨Ïò±ê×¼Êä³öÒÔ²¶»ñ¹ìµÀĞÅÏ¢
+            # é‡å®šå‘æ ‡å‡†è¾“å‡ºä»¥æ•è·è½¨é“ä¿¡æ¯
             import sys
             from io import StringIO
             
             old_stdout = sys.stdout
             sys.stdout = mystdout = StringIO()
             
-            show_track_info(filepath)  # µ÷ÓÃºó¶Ë·½·¨
+            show_track_info(filepath)  # è°ƒç”¨åç«¯æ–¹æ³•
             
             sys.stdout = old_stdout
             output = mystdout.getvalue()
             
-            # ½âÎö¹ìµÀÊıÁ¿
+            # è§£æè½¨é“æ•°é‡
             import re
-            track_count = len(re.findall(r'¹ìµÀ \d+:', output))
-            tracks = ["È«²¿¹ìµÀ"] + [f"¹ìµÀ {i}" for i in range(track_count)]
+            track_count = len(re.findall(r'è½¨é“ \d+:', output))
+            tracks = ["å…¨éƒ¨è½¨é“"] + [f"è½¨é“ {i}" for i in range(track_count)]
             self.track_combobox['values'] = tracks
-            self.append_output(f"ÒÑ¼ÓÔØ {track_count} ¸ö¹ìµÀ")
+            self.append_output(f"å·²åŠ è½½ {track_count} ä¸ªè½¨é“")
         except Exception as e:
-            self.append_output(f"¸üĞÂ¹ìµÀÁĞ±í´íÎó: {str(e)}")
+            self.append_output(f"æ›´æ–°è½¨é“åˆ—è¡¨é”™è¯¯: {str(e)}")
